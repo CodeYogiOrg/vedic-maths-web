@@ -1,9 +1,10 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { Users, Activity, TrendingUp, ArrowLeft, Search, X, Zap, Flame, Star, BookOpen } from 'lucide-react';
+import { Users, Activity, TrendingUp, ArrowLeft, Search, X, Zap, Flame, Star, BookOpen, Trophy, AlertCircle } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
 const ADMIN_EMAIL = 'weareallforyou12345@gmail.com';
 
@@ -31,6 +32,7 @@ interface UserActivitySummary {
   page_visits: ActivityCount[];
   practice_categories: ActivityCount[];
 }
+interface WeeklyDay { day: string; date: string; active: number; }
 
 interface AdminUser {
   user_id: string;
@@ -82,6 +84,8 @@ const AdminPage = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState<AdminUser[]>([]);
+  const [weeklyData, setWeeklyData] = useState<WeeklyDay[]>([]);
+  const [dailyUserSet, setDailyUserSet] = useState<Record<string, Set<string>>>({});
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
   const [search, setSearch] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -100,7 +104,7 @@ const AdminPage = () => {
     const [profilesRes, progressRes, activityRes] = await Promise.all([
       supabase.from('profiles').select('id, full_name, email, role, created_at'),
       supabase.from('student_profiles').select('user_id, total_xp, current_level, daily_streak, last_activity_date, grade_level, achievements, created_at'),
-      supabase.from('user_activity_log').select('user_id, activity_type, activity_value'),
+      supabase.from('user_activity_log').select('user_id, activity_type, activity_value, created_at'),
     ]);
 
     if (profilesRes.error) { setError(`Error: ${profilesRes.error.message}`); setLoading(false); return; }
@@ -109,6 +113,26 @@ const AdminPage = () => {
     const progress: UserProgress[] = progressRes.data || [];
     const activityRows = activityRes.data || [];
 
+    // ── Weekly chart data ───────────────────────────────────────────────
+    const past7 = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - (6 - i));
+      return d.toISOString().split('T')[0];
+    });
+    const dailyUserSet: Record<string, Set<string>> = {};
+    for (const row of activityRows) {
+      const date = (row.created_at as string).split('T')[0];
+      if (!dailyUserSet[date]) dailyUserSet[date] = new Set();
+      dailyUserSet[date].add(row.user_id);
+    }
+    setDailyUserSet(dailyUserSet);
+    setWeeklyData(past7.map(date => ({
+      day: new Date(date + 'T00:00:00').toLocaleDateString('en', { weekday: 'short' }),
+      date,
+      active: dailyUserSet[date]?.size || 0,
+    })));
+
+    // ── Activity map per user ───────────────────────────────────────────
     const activityMap: Record<string, UserActivitySummary> = {};
     for (const row of activityRows) {
       if (!activityMap[row.user_id]) activityMap[row.user_id] = { page_visits: [], practice_categories: [] };
@@ -147,6 +171,20 @@ const AdminPage = () => {
 
   const activeToday = users.filter(u => isActiveToday(u.last_active_at)).length;
   const activeWeek = users.filter(u => isActiveThisWeek(u.last_active_at)).length;
+
+  const past7Dates = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(); d.setDate(d.getDate() - (6 - i));
+    return d.toISOString().split('T')[0];
+  });
+
+  const consistentLearners = users.filter(u =>
+    past7Dates.every(date => dailyUserSet[date]?.has(u.user_id))
+  );
+  const inactiveUsers = users.filter(u => {
+    if (!u.last_active_at) return true;
+    return (Date.now() - new Date(u.last_active_at).getTime()) >= 7 * 86400000;
+  });
+  const maxWeekly = Math.max(...weeklyData.map(d => d.active), 1);
 
   if (loading) return (
     <div className="min-h-screen bg-background flex items-center justify-center">
@@ -205,6 +243,144 @@ const AdminPage = () => {
               <p className="sm:hidden text-[10px] text-muted-foreground font-medium mt-0.5">{stat.shortLabel}</p>
             </motion.div>
           ))}
+        </div>
+
+        {/* Weekly Activity Graph */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="bg-card rounded-2xl p-4 border border-border shadow-card"
+        >
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <p className="font-display font-bold text-sm">Weekly Activity</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Active students per day (last 7 days)</p>
+            </div>
+            <div className="flex items-center gap-1.5 bg-primary/10 px-2.5 py-1 rounded-full">
+              <Activity className="w-3 h-3 text-primary" />
+              <span className="text-xs font-bold text-primary">{activeWeek} this week</span>
+            </div>
+          </div>
+          <ResponsiveContainer width="100%" height={140}>
+            <BarChart data={weeklyData} barSize={28} margin={{ top: 4, right: 0, left: -28, bottom: 0 }}>
+              <XAxis dataKey="day" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} allowDecimals={false} />
+              <Tooltip
+                cursor={{ fill: 'hsl(var(--muted))', radius: 6 }}
+                content={({ active, payload, label }) =>
+                  active && payload?.length ? (
+                    <div className="bg-card border border-border rounded-xl px-3 py-2 shadow-card text-xs">
+                      <p className="font-bold text-foreground">{label}</p>
+                      <p className="text-primary font-semibold">{payload[0].value} active</p>
+                    </div>
+                  ) : null
+                }
+              />
+              <Bar dataKey="active" radius={[6, 6, 0, 0]}>
+                {weeklyData.map((entry, i) => (
+                  <Cell
+                    key={i}
+                    fill={isActiveToday(entry.date + 'T00:00:00') || entry.date === new Date().toISOString().split('T')[0]
+                      ? 'hsl(var(--primary))'
+                      : entry.active > 0 ? 'hsl(var(--secondary))' : 'hsl(var(--muted))'}
+                  />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+          <div className="flex items-center gap-4 mt-2 justify-end">
+            <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-primary inline-block" /><span className="text-[10px] text-muted-foreground">Today</span></div>
+            <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-secondary inline-block" /><span className="text-[10px] text-muted-foreground">Active day</span></div>
+            <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-muted inline-block border border-border" /><span className="text-[10px] text-muted-foreground">No activity</span></div>
+          </div>
+        </motion.div>
+
+        {/* Consistent Learners + Inactive */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {/* Consistent Learners */}
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="bg-card rounded-2xl p-4 border border-border shadow-card"
+          >
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-8 h-8 rounded-xl bg-level/10 flex items-center justify-center">
+                <Trophy className="w-4 h-4 text-level" />
+              </div>
+              <div>
+                <p className="font-display font-bold text-sm">Consistent Learners</p>
+                <p className="text-[10px] text-muted-foreground">Active every day this week</p>
+              </div>
+            </div>
+            {consistentLearners.length === 0 ? (
+              <p className="text-xs text-muted-foreground text-center py-4">No one active all 7 days yet</p>
+            ) : (
+              <div className="space-y-2">
+                {consistentLearners.slice(0, 5).map(u => (
+                  <div key={u.user_id}
+                    onClick={() => setSelectedUser(u)}
+                    className="flex items-center gap-2.5 p-2 rounded-xl hover:bg-muted cursor-pointer transition-colors"
+                  >
+                    <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center text-xs font-display font-bold text-white flex-shrink-0">
+                      {getInitials(u.name)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold truncate">{u.name}</p>
+                      <p className="text-[10px] text-muted-foreground">{u.xp} XP • 🔥 {u.streak}</p>
+                    </div>
+                    <span className="text-[10px] font-bold text-level bg-level/10 px-1.5 py-0.5 rounded-full">7/7</span>
+                  </div>
+                ))}
+                {consistentLearners.length > 5 && (
+                  <p className="text-[10px] text-muted-foreground text-center">+{consistentLearners.length - 5} more</p>
+                )}
+              </div>
+            )}
+          </motion.div>
+
+          {/* Inactive This Week */}
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.35 }}
+            className="bg-card rounded-2xl p-4 border border-border shadow-card"
+          >
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-8 h-8 rounded-xl bg-destructive/10 flex items-center justify-center">
+                <AlertCircle className="w-4 h-4 text-destructive" />
+              </div>
+              <div>
+                <p className="font-display font-bold text-sm">Inactive This Week</p>
+                <p className="text-[10px] text-muted-foreground">Not seen in 7+ days</p>
+              </div>
+            </div>
+            {inactiveUsers.length === 0 ? (
+              <p className="text-xs text-muted-foreground text-center py-4">Everyone is active 🎉</p>
+            ) : (
+              <div className="space-y-2">
+                {inactiveUsers.slice(0, 5).map(u => (
+                  <div key={u.user_id}
+                    onClick={() => setSelectedUser(u)}
+                    className="flex items-center gap-2.5 p-2 rounded-xl hover:bg-muted cursor-pointer transition-colors"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center text-xs font-display font-bold text-muted-foreground flex-shrink-0">
+                      {getInitials(u.name)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold truncate">{u.name}</p>
+                      <p className="text-[10px] text-muted-foreground">Last: {timeAgo(u.last_active_at)}</p>
+                    </div>
+                    <span className="text-[10px] font-bold text-destructive bg-destructive/10 px-1.5 py-0.5 rounded-full">Away</span>
+                  </div>
+                ))}
+                {inactiveUsers.length > 5 && (
+                  <p className="text-[10px] text-muted-foreground text-center">+{inactiveUsers.length - 5} more</p>
+                )}
+              </div>
+            )}
+          </motion.div>
         </div>
 
         {/* Search */}
