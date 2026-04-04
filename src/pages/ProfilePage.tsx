@@ -191,64 +191,74 @@ const ProfilePage = () => {
       </div>
 
       {/* Practice History */}
-      {history && history.total > 0 && (
+      {user && (
         <div className="bg-card rounded-xl p-4 shadow-card border border-border">
           <div className="flex items-center gap-2 mb-4">
             <BookOpen className="w-4 h-4 text-primary" />
             <h3 className="font-display font-bold text-sm">{t('Practice History', 'अभ्यास इतिहास')}</h3>
           </div>
 
-          {/* Summary row */}
-          <div className="grid grid-cols-3 gap-2 mb-4">
-            {[
-              { icon: Target, label: t('Total', 'कुल'), value: history.total, color: 'text-primary', bg: 'bg-primary/10' },
-              { icon: CheckCircle, label: t('Correct', 'सही'), value: history.totalCorrect, color: 'text-level', bg: 'bg-level/10' },
-              { icon: XCircle, label: t('Wrong', 'गलत'), value: history.totalWrong, color: 'text-destructive', bg: 'bg-destructive/10' },
-            ].map(s => (
-              <div key={s.label} className={`${s.bg} rounded-xl p-3 text-center`}>
-                <s.icon className={`w-4 h-4 mx-auto mb-1 ${s.color}`} />
-                <p className={`font-display font-bold text-lg ${s.color}`}>{s.value}</p>
-                <p className="text-[10px] text-muted-foreground font-medium">{s.label}</p>
+          {history === null ? (
+            <div className="flex items-center justify-center py-4">
+              <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : history.total === 0 ? (
+            <p className="text-xs text-muted-foreground text-center py-3">{t('No questions attempted yet. Start practicing!', 'अभी तक कोई सवाल हल नहीं किया। अभ्यास शुरू करें!')}</p>
+          ) : (
+            <>
+              {/* Summary row */}
+              <div className="grid grid-cols-3 gap-2 mb-4">
+                {[
+                  { icon: Target, label: t('Total', 'कुल'), value: history.total, color: 'text-primary', bg: 'bg-primary/10' },
+                  { icon: CheckCircle, label: t('Correct', 'सही'), value: history.totalCorrect, color: 'text-level', bg: 'bg-level/10' },
+                  { icon: XCircle, label: t('Wrong', 'गलत'), value: history.totalWrong, color: 'text-destructive', bg: 'bg-destructive/10' },
+                ].map(s => (
+                  <div key={s.label} className={`${s.bg} rounded-xl p-3 text-center`}>
+                    <s.icon className={`w-4 h-4 mx-auto mb-1 ${s.color}`} />
+                    <p className={`font-display font-bold text-lg ${s.color}`}>{s.value}</p>
+                    <p className="text-[10px] text-muted-foreground font-medium">{s.label}</p>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
 
-          {/* Accuracy bar */}
-          <div className="mb-4">
-            <div className="flex justify-between text-xs mb-1.5">
-              <span className="font-medium">{t('Overall Accuracy', 'कुल सटीकता')}</span>
-              <span className="font-bold text-primary">{history.accuracy}%</span>
-            </div>
-            <Progress value={history.accuracy} className="h-2" />
-          </div>
-
-          {/* Per category */}
-          {history.categoryStats.length > 0 && (
-            <div className="space-y-3">
-              <p className="text-xs font-bold text-muted-foreground uppercase tracking-wide">{t('By Category', 'श्रेणी अनुसार')}</p>
-              {history.categoryStats.map(cat => (
-                <div key={cat.category}>
-                  <div className="flex justify-between text-xs mb-1">
-                    <span className="font-semibold">{cat.label}</span>
-                    <span className="text-muted-foreground">
-                      {cat.correct}/{cat.total} • <span className="text-primary font-bold">{cat.accuracy}%</span>
-                    </span>
-                  </div>
-                  <div className="h-2 bg-muted rounded-full overflow-hidden">
-                    <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: `${cat.accuracy}%` }}
-                      transition={{ duration: 0.6, ease: 'easeOut' }}
-                      className="h-full gradient-primary rounded-full"
-                    />
-                  </div>
-                  <div className="flex gap-3 mt-1">
-                    <span className="text-[10px] text-level">✓ {cat.correct} {t('correct', 'सही')}</span>
-                    <span className="text-[10px] text-destructive">✗ {cat.wrong} {t('wrong', 'गलत')}</span>
-                  </div>
+              {/* Accuracy bar */}
+              <div className="mb-4">
+                <div className="flex justify-between text-xs mb-1.5">
+                  <span className="font-medium">{t('Overall Accuracy', 'कुल सटीकता')}</span>
+                  <span className="font-bold text-primary">{history.accuracy}%</span>
                 </div>
-              ))}
-            </div>
+                <Progress value={history.accuracy} className="h-2" />
+              </div>
+
+              {/* Per category */}
+              {history.categoryStats.length > 0 && (
+                <div className="space-y-3">
+                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-wide">{t('By Category', 'श्रेणी अनुसार')}</p>
+                  {history.categoryStats.map(cat => (
+                    <div key={cat.category}>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="font-semibold">{cat.label}</span>
+                        <span className="text-muted-foreground">
+                          {cat.correct}/{cat.total} • <span className="text-primary font-bold">{cat.accuracy}%</span>
+                        </span>
+                      </div>
+                      <div className="h-2 bg-muted rounded-full overflow-hidden">
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${cat.accuracy}%` }}
+                          transition={{ duration: 0.6, ease: 'easeOut' }}
+                          className="h-full gradient-primary rounded-full"
+                        />
+                      </div>
+                      <div className="flex gap-3 mt-1">
+                        <span className="text-[10px] text-level">✓ {cat.correct} {t('correct', 'सही')}</span>
+                        <span className="text-[10px] text-destructive">✗ {cat.wrong} {t('wrong', 'गलत')}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
           )}
         </div>
       )}

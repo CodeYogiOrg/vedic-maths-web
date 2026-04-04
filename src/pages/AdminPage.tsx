@@ -138,7 +138,10 @@ const AdminPage = () => {
     const activityMap: Record<string, UserActivitySummary> = {};
     for (const row of activityRows) {
       if (!activityMap[row.user_id]) activityMap[row.user_id] = { page_visits: [], practice_categories: [] };
-      const key = row.activity_type === 'page_visit' ? 'page_visits' : 'practice_categories';
+      let key: 'page_visits' | 'practice_categories' | null = null;
+      if (row.activity_type === 'page_visit') key = 'page_visits';
+      else if (row.activity_type === 'practice_category') key = 'practice_categories';
+      else continue; // skip question_result and other types
       const existing = activityMap[row.user_id][key].find(x => x.value === row.activity_value);
       if (existing) existing.count++;
       else activityMap[row.user_id][key].push({ value: row.activity_value, count: 1 });
