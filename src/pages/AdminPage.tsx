@@ -355,7 +355,13 @@ const AdminPage = () => {
                   const latestDate = activeDays[activeDays.length - 1];
                   const session = userDayActivity[u.user_id]?.[latestDate];
                   const fmt = (ts: string) => new Date(ts).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
-                  const durationMins = session ? Math.round((new Date(session.last).getTime() - new Date(session.first).getTime()) / 60000) : 0;
+                  const durationSecs = session ? Math.round((new Date(session.last).getTime() - new Date(session.first).getTime()) / 1000) : 0;
+                  const fmtDuration = (s: number) => {
+                    if (s < 60) return `${s}s`;
+                    const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+                    if (h > 0) return sec > 0 ? `${h}h ${m}m ${sec}s` : `${h}h ${m}m`;
+                    return sec > 0 ? `${m}m ${sec}s` : `${m}m`;
+                  };
                   return (
                     <div key={u.user_id}
                       onClick={() => { setSelectedUser(u); setSelectedHistory(null); fetchPracticeHistory(u.user_id).then(setSelectedHistory); }}
@@ -385,7 +391,7 @@ const AdminPage = () => {
                           <span className="text-level font-medium">↓ {fmt(session.first)}</span>
                           <span>→</span>
                           <span className="text-secondary font-medium">↑ {fmt(session.last)}</span>
-                          {durationMins > 0 && <span className="ml-auto bg-muted px-1.5 py-0.5 rounded-full">{durationMins}m</span>}
+                          {durationSecs > 0 && <span className="ml-auto bg-muted px-1.5 py-0.5 rounded-full">{fmtDuration(durationSecs)}</span>}
                         </div>
                       )}
                     </div>
