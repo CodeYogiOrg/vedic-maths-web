@@ -160,22 +160,22 @@ const AdminPage = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="gradient-hero px-4 py-5">
+      <div className="gradient-hero px-4 py-4 md:py-5">
         <div className="flex items-center gap-3 max-w-5xl mx-auto">
           <button
             onClick={() => navigate('/')}
-            className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center hover:bg-white/30 transition-colors"
+            className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center hover:bg-white/30 transition-colors flex-shrink-0"
           >
             <ArrowLeft className="w-4 h-4 text-white" />
           </button>
-          <div>
-            <h1 className="font-display font-bold text-xl text-white">Admin Dashboard</h1>
-            <p className="text-xs text-white/70">Vedic Math — User Overview</p>
+          <div className="min-w-0">
+            <h1 className="font-display font-bold text-lg md:text-xl text-white leading-tight">Admin Dashboard</h1>
+            <p className="text-[11px] md:text-xs text-white/70">Vedic Math — User Overview</p>
           </div>
         </div>
       </div>
 
-      <div className="px-4 py-5 space-y-5 max-w-5xl mx-auto">
+      <div className="px-3 sm:px-4 py-4 md:py-5 space-y-4 md:space-y-5 max-w-5xl mx-auto">
         {/* Error */}
         {error && (
           <div className="rounded-xl px-4 py-3 text-sm text-destructive bg-destructive/10 border border-destructive/20">
@@ -184,24 +184,25 @@ const AdminPage = () => {
         )}
 
         {/* Stat Cards */}
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-3 gap-2 sm:gap-3">
           {[
-            { icon: Users, label: 'Total Users', value: users.length, color: 'text-primary', bg: 'bg-primary/10' },
-            { icon: Activity, label: 'Active Today', value: activeToday, color: 'text-level', bg: 'bg-level/10' },
-            { icon: TrendingUp, label: 'This Week', value: activeWeek, color: 'text-secondary', bg: 'bg-secondary/10' },
+            { icon: Users, label: 'Total Users', shortLabel: 'Users', value: users.length, color: 'text-primary', bg: 'bg-primary/10' },
+            { icon: Activity, label: 'Active Today', shortLabel: 'Today', value: activeToday, color: 'text-level', bg: 'bg-level/10' },
+            { icon: TrendingUp, label: 'This Week', shortLabel: 'Week', value: activeWeek, color: 'text-secondary', bg: 'bg-secondary/10' },
           ].map((stat, i) => (
             <motion.div
               key={stat.label}
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.07 }}
-              className="bg-card rounded-2xl p-4 shadow-card border border-border text-center"
+              className="bg-card rounded-xl sm:rounded-2xl p-3 sm:p-4 shadow-card border border-border text-center"
             >
-              <div className={`w-9 h-9 rounded-xl ${stat.bg} flex items-center justify-center mx-auto mb-2`}>
-                <stat.icon className={`w-4 h-4 ${stat.color}`} />
+              <div className={`w-7 h-7 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl ${stat.bg} flex items-center justify-center mx-auto mb-1.5 sm:mb-2`}>
+                <stat.icon className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${stat.color}`} />
               </div>
-              <p className="font-display font-bold text-2xl">{stat.value}</p>
-              <p className="text-[10px] text-muted-foreground font-medium mt-0.5">{stat.label}</p>
+              <p className="font-display font-bold text-xl sm:text-2xl">{stat.value}</p>
+              <p className="hidden sm:block text-[10px] text-muted-foreground font-medium mt-0.5">{stat.label}</p>
+              <p className="sm:hidden text-[10px] text-muted-foreground font-medium mt-0.5">{stat.shortLabel}</p>
             </motion.div>
           ))}
         </div>
@@ -294,11 +295,11 @@ const AdminPage = () => {
 
       {/* Detail Sheet */}
       <Sheet open={!!selectedUser} onOpenChange={open => !open && setSelectedUser(null)}>
-        <SheetContent className="overflow-y-auto border-border">
+        <SheetContent className="overflow-y-auto border-border w-full sm:max-w-md p-4 sm:p-6">
           {selectedUser && (
             <>
               {/* Sheet header with gradient */}
-              <div className="gradient-hero -mx-6 -mt-6 px-6 pt-6 pb-5 mb-5">
+              <div className="gradient-hero -mx-4 sm:-mx-6 -mt-4 sm:-mt-6 px-4 sm:px-6 pt-4 sm:pt-6 pb-4 sm:pb-5 mb-4 sm:mb-5">
                 <SheetHeader>
                   <SheetTitle className="flex items-start gap-3">
                     <div className="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center text-xl font-display font-bold text-white flex-shrink-0">
