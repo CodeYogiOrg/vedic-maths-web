@@ -13,7 +13,7 @@ const Footer = () => {
           {/* Brand */}
           <div className="col-span-2 md:col-span-1">
             <div className="flex items-center gap-2 mb-3">
-              <img src="/brand_logo.png" alt="Logo" className="h-[50px] w-auto object-contain" />
+              <img src="/brand_logo.png" alt="Logo" className="h-[62px] w-auto object-contain" />
             </div>
             <p className="text-xs text-muted-foreground leading-relaxed">
               {t(

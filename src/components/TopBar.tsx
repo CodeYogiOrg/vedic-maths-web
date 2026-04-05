@@ -21,7 +21,7 @@ const TopBar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-40 bg-card/90 backdrop-blur-xl border-b border-border">
+    <header className="sticky top-0 z-40 bg-white border-b border-border">
       <div className="max-w-7xl mx-auto flex items-center justify-between px-4 h-[70px]">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2">
