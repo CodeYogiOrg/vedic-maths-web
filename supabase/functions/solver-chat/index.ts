@@ -32,12 +32,18 @@ Deno.serve(async (req) => {
         : msg.content }],
     }));
 
-    const MODELS = ["gemini-1.5-flash", "gemini-1.5-flash-8b"];
+    // Try multiple model + endpoint combos for maximum compatibility
+    const ATTEMPTS = [
+      { model: "gemini-2.0-flash", version: "v1beta" },
+      { model: "gemini-1.5-flash", version: "v1beta" },
+      { model: "gemini-1.5-flash-latest", version: "v1beta" },
+      { model: "gemini-pro", version: "v1" },
+    ];
     let content = "";
 
-    for (const model of MODELS) {
+    for (const { model, version } of ATTEMPTS) {
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`,
+        `https://generativelanguage.googleapis.com/${version}/models/${model}:generateContent?key=${GEMINI_API_KEY}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -54,14 +60,17 @@ Deno.serve(async (req) => {
         if (content) break;
       } else {
         const err = await response.text();
-        console.error(`${model} error ${response.status}: ${err}`);
-        if (response.status === 404) throw new Error(`Model not found: ${model}`);
-        if (response.status !== 429) throw new Error(`Gemini error ${response.status}`);
-        // 429 → try next model
+        console.error(`${model} (${version}) error ${response.status}: ${err}`);
+        // 404 = model not found on this key, try next
+        // 429 = rate limit, try next
+        // anything else = real error, stop
+        if (response.status !== 404 && response.status !== 429) {
+          throw new Error(`Gemini error ${response.status}`);
+        }
       }
     }
 
-    if (!content) throw new Error("All Gemini models rate-limited");
+    if (!content) throw new Error("No Gemini model available");
 
     return new Response(JSON.stringify({ content }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

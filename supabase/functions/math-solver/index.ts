@@ -77,12 +77,25 @@ Deno.serve(async (req) => {
       ];
     }
 
-    const MODELS = ["gemini-1.5-flash", "gemini-1.5-flash-8b"];
+    // Vision-capable models first, then text fallback (for image inputs)
+    const ATTEMPTS = imageBase64
+      ? [
+          { model: "gemini-2.0-flash", version: "v1beta" },
+          { model: "gemini-1.5-flash", version: "v1beta" },
+          { model: "gemini-1.5-flash-latest", version: "v1beta" },
+          { model: "gemini-1.5-pro", version: "v1beta" },
+        ]
+      : [
+          { model: "gemini-2.0-flash", version: "v1beta" },
+          { model: "gemini-1.5-flash", version: "v1beta" },
+          { model: "gemini-1.5-flash-latest", version: "v1beta" },
+          { model: "gemini-pro", version: "v1" },
+        ];
     let content = "";
 
-    for (const model of MODELS) {
+    for (const { model, version } of ATTEMPTS) {
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`,
+        `https://generativelanguage.googleapis.com/${version}/models/${model}:generateContent?key=${GEMINI_API_KEY}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -99,9 +112,10 @@ Deno.serve(async (req) => {
         if (content) break;
       } else {
         const errText = await response.text();
-        console.error(`${model} error ${response.status}: ${errText}`);
-        if (response.status === 404) throw new Error(`Model not found: ${model}`);
-        if (response.status !== 429) throw new Error(`Gemini error ${response.status}`);
+        console.error(`${model} (${version}) error ${response.status}: ${errText}`);
+        if (response.status !== 404 && response.status !== 429) {
+          throw new Error(`Gemini error ${response.status}`);
+        }
       }
     }
 
