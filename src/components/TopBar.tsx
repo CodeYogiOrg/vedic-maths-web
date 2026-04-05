@@ -25,10 +25,7 @@ const TopBar = () => {
       <div className="max-w-7xl mx-auto flex items-center justify-between px-4 h-14">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center">
-            <span className="text-primary-foreground font-display font-bold text-sm">M</span>
-          </div>
-          <h1 className="font-display font-bold text-base gradient-text">MathGenius</h1>
+          <img src="/brand_logo.png" alt="Logo" className="h-9 w-auto object-contain" />
         </Link>
 
         {/* Desktop Nav */}
