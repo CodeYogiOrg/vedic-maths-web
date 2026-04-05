@@ -32,11 +32,7 @@ Deno.serve(async (req) => {
         : msg.content }],
     }));
 
-    const MODELS = [
-      "gemini-2.0-flash-lite",
-      "gemini-1.5-flash",
-      "gemini-1.5-flash-8b",
-    ];
+    const MODELS = ["gemini-1.5-flash", "gemini-1.5-flash-8b"];
     let content = "";
 
     for (const model of MODELS) {
@@ -59,7 +55,8 @@ Deno.serve(async (req) => {
       } else {
         const err = await response.text();
         console.error(`${model} error ${response.status}: ${err}`);
-        if (response.status !== 429 && response.status !== 404) throw new Error(`Gemini error ${response.status}`);
+        if (response.status === 404) throw new Error(`Model not found: ${model}`);
+        if (response.status !== 429) throw new Error(`Gemini error ${response.status}`);
         // 429 → try next model
       }
     }
