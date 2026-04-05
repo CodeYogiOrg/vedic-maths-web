@@ -144,7 +144,6 @@ const SolverPage = () => {
     setSolving(true);
     setError('');
     setSolution(null);
-    setChatMessages([]);
     synthRef.current.cancel();
     setIsSpeaking(false);
 
@@ -204,9 +203,6 @@ const SolverPage = () => {
     setChatLoading(true);
 
     let assistantSoFar = '';
-    const problemContext = solution
-      ? `Problem: ${solution.problem}\nTraditional: ${solution.traditional.steps.join(' → ')}\nVedic (${solution.vedic.method}): ${solution.vedic.steps.join(' → ')}`
-      : '';
 
     try {
       const resp = await fetch(CHAT_URL, {
@@ -215,7 +211,7 @@ const SolverPage = () => {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
         },
-        body: JSON.stringify({ messages: newMessages, problemContext }),
+        body: JSON.stringify({ messages: newMessages }),
       });
 
       if (!resp.ok || !resp.body) throw new Error('Stream failed');
@@ -487,60 +483,6 @@ const SolverPage = () => {
             </div>
           )}
 
-          {/* Chat Section */}
-          <div className="bg-card rounded-xl border border-border overflow-hidden">
-            <div className="flex items-center gap-2 px-4 py-3 border-b border-border bg-muted/30">
-              <MessageCircle className="w-4 h-4 text-primary" />
-              <span className="font-display font-bold text-sm">{t('Ask AI about this problem', 'इस सवाल के बारे में AI से पूछें')}</span>
-            </div>
-
-            {/* Chat messages */}
-            <div className="max-h-64 overflow-y-auto p-3 space-y-3">
-              {chatMessages.length === 0 && (
-                <p className="text-xs text-muted-foreground text-center py-4">
-                  {t('Ask anything about the solution! e.g. "Explain the Vedic method in detail"', 'हल के बारे में कुछ भी पूछें! जैसे "वैदिक तरीका विस्तार से समझाओ"')}
-                </p>
-              )}
-              {chatMessages.map((msg, i) => (
-                <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[85%] rounded-xl px-3 py-2 text-sm ${msg.role === 'user' ? 'gradient-primary text-primary-foreground' : 'bg-muted text-foreground'}`}>
-                    {msg.role === 'assistant' ? (
-                      <div className="prose prose-sm dark:prose-invert max-w-none [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1">
-                        <ReactMarkdown>{msg.content}</ReactMarkdown>
-                      </div>
-                    ) : msg.content}
-                  </div>
-                </div>
-              ))}
-              {chatLoading && chatMessages[chatMessages.length - 1]?.role !== 'assistant' && (
-                <div className="flex justify-start">
-                  <div className="bg-muted rounded-xl px-3 py-2">
-                    <Loader2 className="w-4 h-4 animate-spin text-primary" />
-                  </div>
-                </div>
-              )}
-              <div ref={chatEndRef} />
-            </div>
-
-            {/* Chat input */}
-            <div className="flex gap-2 p-3 border-t border-border">
-              <input
-                value={chatInput}
-                onChange={(e) => setChatInput(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && sendChatMessage()}
-                placeholder={t('Type your question...', 'अपना सवाल लिखें...')}
-                className="flex-1 bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
-              />
-              <button
-                onClick={sendChatMessage}
-                disabled={chatLoading || !chatInput.trim()}
-                className="gradient-primary text-primary-foreground p-2 rounded-lg disabled:opacity-50"
-              >
-                <Send className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-
           {/* Solve another */}
           <div className="flex gap-3 justify-center pt-2">
             <button onClick={openCamera} className="bg-card border border-border text-foreground px-4 py-2 rounded-xl font-semibold text-sm flex items-center gap-2 shadow-card">
@@ -552,6 +494,68 @@ const SolverPage = () => {
           </div>
         </motion.div>
       )}
+
+      {/* ── Standalone AI Chat ─────────────────────────────────────────── */}
+      <div className="bg-card rounded-xl border border-border overflow-hidden">
+        <div className="flex items-center gap-2 px-4 py-3 border-b border-border bg-muted/30">
+          <MessageCircle className="w-4 h-4 text-primary" />
+          <span className="font-display font-bold text-sm">{t('Chat with AI', 'AI से बात करें')}</span>
+          {chatMessages.length > 0 && (
+            <button
+              onClick={() => setChatMessages([])}
+              className="ml-auto text-[10px] text-muted-foreground hover:text-destructive transition-colors flex items-center gap-1"
+            >
+              <X className="w-3 h-3" /> {t('Clear', 'साफ करें')}
+            </button>
+          )}
+        </div>
+
+        {/* Messages */}
+        <div className="max-h-72 overflow-y-auto p-3 space-y-3">
+          {chatMessages.length === 0 && (
+            <p className="text-xs text-muted-foreground text-center py-6">
+              {t('Ask anything — math, vedic methods, shortcuts…', 'कुछ भी पूछें — गणित, वैदिक तरीके, shortcuts…')}
+            </p>
+          )}
+          {chatMessages.map((msg, i) => (
+            <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+              <div className={`max-w-[85%] rounded-xl px-3 py-2 text-sm ${msg.role === 'user' ? 'gradient-primary text-primary-foreground' : 'bg-muted text-foreground'}`}>
+                {msg.role === 'assistant' ? (
+                  <div className="prose prose-sm dark:prose-invert max-w-none [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1">
+                    <ReactMarkdown>{msg.content}</ReactMarkdown>
+                  </div>
+                ) : msg.content}
+              </div>
+            </div>
+          ))}
+          {chatLoading && chatMessages[chatMessages.length - 1]?.role !== 'assistant' && (
+            <div className="flex justify-start">
+              <div className="bg-muted rounded-xl px-3 py-2">
+                <Loader2 className="w-4 h-4 animate-spin text-primary" />
+              </div>
+            </div>
+          )}
+          <div ref={chatEndRef} />
+        </div>
+
+        {/* Input */}
+        <div className="flex gap-2 p-3 border-t border-border">
+          <input
+            value={chatInput}
+            onChange={(e) => setChatInput(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && sendChatMessage()}
+            placeholder={t('Type your message…', 'अपना संदेश लिखें…')}
+            className="flex-1 bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+          />
+          <button
+            onClick={sendChatMessage}
+            disabled={chatLoading || !chatInput.trim()}
+            className="gradient-primary text-primary-foreground p-2 rounded-lg disabled:opacity-50"
+          >
+            <Send className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
     </div>
   );
 };
